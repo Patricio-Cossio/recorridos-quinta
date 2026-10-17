@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quinta Matucana · Guía de Museos del Parque Quinta Normal</title>
+<meta name="description" content="Guía interactiva de los museos del Parque Quinta Normal: mapa con pines, circuitos sugeridos y evaluación de recorridos.">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  body{font-family:"Source Serif 4",Charter,Georgia,serif;background:#FFFDF9;color:#14213D}
+  .serif-title{font-family:"Playfair Display",Didot,"Bodoni MT",serif;letter-spacing:-0.01em}
+  .ln{display:block;overflow:hidden}
+  .ln>span{display:block;animation:d2-up .9s cubic-bezier(.2,.7,0,1) both}
+  .ln:nth-child(2)>span{animation-delay:.15s}
+  @keyframes d2-up{from{transform:translateY(110%)}to{transform:translateY(0)}}
+  .d2-wipe{clip-path:inset(100% 0 0 0);animation:d2-w 1.2s .2s cubic-bezier(.7,0,.2,1) forwards}
+  @keyframes d2-w{to{clip-path:inset(0 0 0 0)}}
+  .mq{display:flex;width:max-content;animation:d2-mq 42s linear infinite}
+  @keyframes d2-mq{to{transform:translateX(-50%)}}
+  .drift{animation:d2-drift 18s ease-in-out infinite alternate}
+  @keyframes d2-drift{from{transform:scale(1)}to{transform:scale(1.05)}}
+  .slot-arch{border-radius:180px 180px 24px 24px;overflow:hidden}
+  @keyframes fade-in-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+  .fade-in-up{animation:fade-in-up .7s cubic-bezier(.2,.7,0,1) both}
+  @media (prefers-reduced-motion:reduce){.ln>span,.d2-wipe,.mq,.drift,.fade-in-up{animation:none!important}.d2-wipe{clip-path:none}}
+  .leaflet-container{font-family:"Source Serif 4",Georgia,serif;z-index:10}
+  .museum-pin{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px;color:#fff;font-family:"Playfair Display",serif;font-weight:700;font-size:12px;border:3px solid #fff;box-shadow:0 4px 14px rgba(20,33,61,.45);cursor:pointer}
+  .museum-pin.pin-active{transform:scale(1.25);border-color:#F77F00}
+  .leaflet-popup-content-wrapper{border-radius:16px;box-shadow:0 10px 30px rgba(20,33,61,.25)}
+  .leaflet-popup-content{margin:14px 18px;font-size:13px;line-height:1.5}
+  .star-btn{transition:transform .15s}.star-btn:hover{transform:scale(1.25)}
+  #star-rating button svg{fill:none;stroke:rgba(20,33,61,.25);transition:fill .15s, stroke .15s}
+  #star-rating[data-value="1"] button:nth-of-type(-n+1) svg,
+  #star-rating[data-value="2"] button:nth-of-type(-n+2) svg,
+  #star-rating[data-value="3"] button:nth-of-type(-n+3) svg,
+  #star-rating[data-value="4"] button:nth-of-type(-n+4) svg,
+  #star-rating[data-value="5"] button:nth-of-type(-n+5) svg{fill:#F77F00;stroke:#F77F00}
+  #star-rating:hover button svg{fill:none !important;stroke:rgba(20,33,61,.25) !important}
+  #star-rating button:hover svg, #star-rating button:has(~ button:hover) svg{fill:#F77F00 !important;stroke:#F77F00 !important}
+  #toast{transition:opacity .3s, transform .3s}
+</style>
+</head>
+<body class="antialiased" data-testid="app-root">
+
+<!-- NAVBAR -->
+<nav data-testid="main-nav" class="sticky top-0 z-40 bg-[#FFFDF9]/90 backdrop-blur-md border-b border-[#14213D]/10 px-6 md:px-8 py-4">
+  <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+    <a href="#inicio" data-testid="nav-logo" class="flex items-center gap-3 shrink-0">
+      <svg class="w-9 h-9" viewBox="0 0 48 48" fill="none" aria-label="Logotipo Quinta Matucana">
+        <circle cx="24" cy="24" r="22" stroke="#14213D" stroke-width="2.5"/>
+        <path d="M12 34 C12 20 18 13 24 13 C30 13 36 20 36 34" stroke="#0077B6" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <line x1="17" y1="27" x2="17" y2="34" stroke="#0077B6" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="24" y1="22" x2="24" y2="34" stroke="#0077B6" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="31" y1="27" x2="31" y2="34" stroke="#0077B6" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="24" cy="9.5" r="3" fill="#F77F00"/>
+        <path d="M13 38.5 L35 38.5" stroke="#D62828" stroke-width="2.8" stroke-linecap="round"/>
+        <path d="M16 42 L32 42" stroke="#D62828" stroke-width="1.8" stroke-linecap="round" opacity="0.55"/>
+      </svg>
+      <div>
+        <span class="serif-title text-xl md:text-2xl tracking-tight text-[#14213D] block leading-none">QUINTA MATUCANA</span>
+        <span class="text-[10px] tracking-widest uppercase text-[#14213D]/60 font-sans">Eje Patrimonial Santiago</span>
+      </div>
+    </a>
+    <div class="hidden md:flex items-center gap-8 text-xs font-sans tracking-widest uppercase text-[#14213D]/70 font-semibold">
+      <a href="#museos" data-testid="nav-link-museos" class="hover:text-[#0077B6] transition-colors">Colecciones</a>
+      <a href="#mapa-plano" data-testid="nav-link-mapa-plano" class="hover:text-[#0077B6] transition-colors">Mapa del Parque</a>
+      <a href="#recorridos" data-testid="nav-link-recorridos" class="hover:text-[#0077B6] transition-colors">Circuitos</a>
+      <a href="#evaluacion" data-testid="nav-link-evaluacion" class="hover:text-[#0077B6] transition-colors">Calificar</a>
+    </div>
+    <a href="#evaluacion" data-testid="nav-evaluate-btn" class="font-sans px-5 py-2.5 rounded-full bg-[#14213D] text-[#FFFDF9] font-medium text-xs tracking-wider uppercase hover:bg-[#0077B6] transition-colors shrink-0">Evaluar Ruta</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header id="inicio" data-testid="hero-section" class="pt-14 pb-20 px-6 md:px-8 max-w-6xl mx-auto">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+    <div class="lg:col-span-7">
+      <span class="font-sans text-xs font-bold tracking-widest uppercase text-[#D62828] mb-4 block">Santiago Poniente · Circuito Cultural</span>
+      <h1 class="serif-title text-5xl md:text-7xl leading-[1.05] text-[#14213D] mb-6">
+        <span class="ln"><span>EL GRAN PARQUE DE</span></span>
+        <span class="ln"><span class="italic text-[#0077B6]">LOS MUSEOS CHILENOS</span></span>
+      </h1>
+      <p class="text-base text-[#14213D]/80 leading-relaxed mb-8 max-w-xl">
+        Descubre el Museo Ferroviario con sus trenes patrimoniales, la ballena del Museo de Historia Natural
+        y los pabellones artísticos en un solo destino. Planifica tu visita, elige un circuito y recorre el
+        pulmón cultural de Santiago Poniente.
+      </p>
+      <div class="flex flex-wrap gap-4 font-sans text-xs">
+        <a href="#mapa-plano" data-testid="hero-map-cta" class="px-6 py-3.5 rounded-full bg-[#F77F00] text-white font-bold tracking-wider uppercase hover:bg-[#d96e00] transition-colors">Explorar Mapa y Rutas</a>
+        <a href="#museos" data-testid="hero-museums-cta" class="px-6 py-3.5 rounded-full border border-[#14213D]/20 text-[#14213D] font-bold tracking-wider uppercase hover:border-[#14213D] transition-colors">Ver 9 Museos</a>
+      </div>
+    </div>
+    <div class="lg:col-span-5">
+      <div class="slot-arch h-[440px] relative d2-wipe shadow-2xl border-4 border-white">
+        <div class="absolute inset-0 drift">
+          <img src="https://images.pexels.com/photos/15062958/pexels-photo-15062958.png?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="Locomotora a vapor patrimonial del Museo Ferroviario de Santiago" class="w-full h-full object-cover" data-testid="hero-image">
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-[#14213D] via-[#14213D]/40 to-transparent p-6 flex flex-col justify-end text-white">
+          <span class="font-sans text-[11px] uppercase tracking-widest text-[#F77F00] font-bold">Pieza Destacada</span>
+          <h3 class="serif-title text-2xl">Locomotora Tipo 80</h3>
+          <p class="font-sans text-xs text-white/80 mt-1">Joyas de la maestranza ferroviaria chilena preservadas en su parque.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- MARQUEE -->
+<div data-testid="museum-marquee" class="border-y border-[#14213D]/10 bg-[#FAF0CA] py-4 text-[#14213D] overflow-hidden">
+  <div id="marquee-track" class="mq gap-10 items-center font-sans text-xs font-bold uppercase tracking-widest"></div>
+</div>
+
+<!-- MAPA -->
+<section id="mapa-plano" data-testid="map-section" class="py-24 px-6 md:px-8 max-w-6xl mx-auto">
+  <div class="text-center max-w-2xl mx-auto mb-16">
+    <span class="font-sans text-xs font-bold tracking-widest uppercase text-[#0077B6]">Navegación del Predio</span>
+    <h2 class="serif-title text-4xl md:text-5xl text-[#14213D] mt-2">Plano de Paradas Culturales</h2>
+    <p class="font-sans text-sm text-[#14213D]/70 mt-3">Toca cada pin para conocer el museo. El trazado punteado muestra el circuito seleccionado.</p>
+  </div>
+  <div class="bg-[#14213D] text-white p-6 md:p-12 rounded-3xl relative overflow-hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      <div class="lg:col-span-7 rounded-2xl bg-white/5 p-3 border border-white/10 flex flex-col">
+        <div id="map" data-testid="leaflet-map" class="rounded-xl overflow-hidden" style="height:460px"></div>
+        <div class="font-sans text-xs text-white/70 mt-4 text-center">Red de senderos peatonales · Accesos Metro Quinta Normal (L5) y Gruta de Lourdes (L5)</div>
+      </div>
+      <div class="lg:col-span-5 space-y-4 font-sans flex flex-col">
+        <div id="map-route-switcher" data-testid="map-route-switcher" class="flex gap-2 flex-wrap mb-1"></div>
+        <div id="map-stops" class="space-y-4"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MUSEOS -->
+<section id="museos" data-testid="museums-section" class="py-20 px-6 md:px-8 max-w-6xl mx-auto">
+  <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+    <div>
+      <span class="font-sans text-xs font-bold tracking-widest uppercase text-[#D62828]">Catálogo Patrimonial</span>
+      <h2 class="serif-title text-4xl md:text-5xl text-[#14213D] mt-1">Los Museos del Parque</h2>
+    </div>
+    <span class="font-sans text-xs text-[#14213D]/60 mt-4 md:mt-0">Acceso peatonal por Av. Matucana y Av. Portales</span>
+  </div>
+  <div id="museums-grid" class="grid grid-cols-1 md:grid-cols-3 gap-8"></div>
+</section>
+
+<!-- RECORRIDOS -->
+<section id="recorridos" data-testid="routes-section" class="py-20 px-6 md:px-8 bg-[#F4F1DE]/50 border-y border-[#14213D]/10">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center max-w-xl mx-auto mb-12">
+      <span class="font-sans text-xs font-bold tracking-widest uppercase text-[#F77F00]">Planificador de Ruta</span>
+      <h2 class="serif-title text-4xl md:text-5xl text-[#14213D]">Selecciona tu Itinerario</h2>
+    </div>
+    <div id="route-options" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8" role="radiogroup" aria-label="Circuitos disponibles"></div>
+    <div data-testid="route-detail-panel" class="bg-white p-8 md:p-10 rounded-3xl border border-[#14213D]/10">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+        <div class="md:col-span-8">
+          <div id="route-meta" class="flex flex-wrap gap-4 font-sans text-xs font-bold uppercase tracking-wider"></div>
+          <h3 id="route-title" class="serif-title text-3xl text-[#14213D] mt-2 mb-3"></h3>
+          <p id="route-desc" class="text-sm text-[#14213D]/80 leading-relaxed mb-4"></p>
+          <div id="route-audience" class="font-sans text-xs text-[#0077B6] font-semibold mb-6"></div>
+          <ol id="route-stops" class="space-y-2 mb-6"></ol>
+          <button type="button" id="route-view-map" data-testid="route-view-map-btn" class="font-sans inline-flex items-center gap-2 px-6 py-3 rounded-full text-white font-bold text-xs uppercase tracking-wider transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Ver circuito en el mapa
+          </button>
+        </div>
+        <div class="md:col-span-4 rounded-2xl p-6 text-center" id="route-panel">
+          <div class="font-sans text-xs uppercase text-[#14213D]/70 font-bold mb-1">Paradas Clave</div>
+          <div id="route-keystops" class="serif-title text-2xl"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVALUACION -->
+<section id="evaluacion" data-testid="evaluation-section" class="py-24 px-6 md:px-8 max-w-6xl mx-auto">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+    <div class="lg:col-span-5">
+      <span class="font-sans text-xs font-bold tracking-widest uppercase text-[#0077B6]">Participación Ciudadana</span>
+      <h2 class="serif-title text-4xl text-[#14213D] mt-1 mb-4">Evalúa tu Experiencia</h2>
+      <p class="text-sm text-[#14213D]/75 leading-relaxed mb-6">Tu valoración sobre los tiempos, la limpieza de los senderos y la atención en cada museo ayuda a mejorar la guía comunitaria del parque.</p>
+      <div id="evaluation-stats" data-testid="evaluation-stats" class="hidden items-center gap-4 mb-6 font-sans">
+        <div id="stats-average" class="serif-title text-5xl text-[#F77F00]"></div>
+        <div class="text-xs text-[#14213D]/70">
+          <div id="stats-stars" class="flex gap-0.5"></div>
+          <div id="stats-count" class="mt-1"></div>
+        </div>
+      </div>
+      <div data-testid="testimonials-wall" class="p-6 rounded-2xl bg-[#FAF0CA]/50 border border-[#FAF0CA] max-h-96 overflow-y-auto space-y-4">
+        <div class="font-sans text-xs font-bold uppercase text-[#14213D]/70">Testimonios de Visitantes</div>
+        <div id="testimonials-list" class="space-y-4"></div>
+      </div>
+    </div>
+    <div class="lg:col-span-7 bg-white p-8 rounded-3xl border border-[#14213D]/10 shadow-lg font-sans">
+      <form id="evaluation-form" data-testid="evaluation-form" class="space-y-5" novalidate>
+        <div>
+          <label for="eval-name" class="block text-xs font-bold uppercase tracking-wider text-[#14213D]/70 mb-2">Nombre y Apellido</label>
+          <input id="eval-name" data-testid="eval-name-input" type="text" required minlength="2" class="w-full px-4 py-3 rounded-xl border border-[#14213D]/20 bg-[#FFFDF9] text-sm focus:outline-none focus:border-[#0077B6] transition-colors" placeholder="Tu nombre">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="eval-route" class="block text-xs font-bold uppercase tracking-wider text-[#14213D]/70 mb-2">Circuito Realizado</label>
+            <select id="eval-route" data-testid="eval-route-select" required class="w-full px-4 py-3 rounded-xl border border-[#14213D]/20 bg-[#FFFDF9] text-sm focus:outline-none focus:border-[#0077B6] transition-colors">
+              <option value="" disabled selected>Selecciona un circuito</option>
+            </select>
+          </div>
+          <div>
+            <span class="block text-xs font-bold uppercase tracking-wider text-[#14213D]/70 mb-2">Calificación Global</span>
+            <div id="star-rating" data-testid="star-rating" class="flex gap-1.5 pt-1" role="radiogroup" aria-label="Calificación global"></div>
+          </div>
+        </div>
+        <div>
+          <label for="eval-comment" class="block text-xs font-bold uppercase tracking-wider text-[#14213D]/70 mb-2">Comentario de la visita</label>
+          <textarea id="eval-comment" data-testid="eval-comment-input" rows="3" required minlength="3" class="w-full px-4 py-3 rounded-xl border border-[#14213D]/20 bg-[#FFFDF9] text-sm focus:outline-none focus:border-[#0077B6] transition-colors" placeholder="Comparte qué exposición te gustó más o recomendaciones para otros visitantes"></textarea>
+        </div>
+        <button type="submit" id="eval-submit" data-testid="eval-submit-btn" class="w-full py-4 rounded-xl bg-[#0077B6] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#005f92] transition-colors">Guardar Calificación y Reseña</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- BANNER -->
+<div class="px-6 md:px-8 max-w-6xl mx-auto pb-16">
+  <div class="h-60 rounded-3xl relative overflow-hidden">
+    <div class="absolute inset-0 drift">
+      <img src="https://images.pexels.com/photos/38313214/pexels-photo-38313214.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="Alameda histórica de palmeras del Parque Quinta Normal" loading="lazy" class="w-full h-full object-cover" data-testid="banner-image">
+    </div>
+    <div class="absolute inset-0 bg-[#14213D]/60 flex items-center justify-center text-center p-6 text-white">
+      <div>
+        <span class="font-sans text-xs uppercase font-bold tracking-widest text-[#FAF0CA]">Pulmón Verde de Santiago Poniente</span>
+        <h4 class="serif-title text-3xl mt-1">Más de 35 hectáreas de historia y naturaleza</h4>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer data-testid="site-footer" class="bg-[#14213D] text-white py-12 px-6 md:px-8 border-t border-white/10 font-sans">
+  <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-white/60">
+    <div class="flex items-center gap-3">
+      <svg class="w-7 h-7 text-[#F77F00]" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M12 34 C12 20 18 13 24 13 C30 13 36 20 36 34" stroke="#F77F00" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <circle cx="24" cy="24" r="5" fill="#0077B6"/>
+      </svg>
+      <span class="font-bold text-white uppercase tracking-wider">Quinta Matucana · Guía de Museos</span>
+    </div>
+    <div>Acceso principal por Estación Quinta Normal · Línea 5 Metro</div>
+    <div>Patrimonio cultural de Santiago de Chile</div>
+  </div>
+</footer>
+
+<!-- TOAST -->
+<div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl font-sans text-sm font-semibold shadow-xl opacity-0 pointer-events-none" role="status"></div>
+
+<script>
+const MUSEUMS = [
+  {slug:"ferroviario",name:"Museo Ferroviario de Santiago",short_name:"Museo Ferroviario",initials:"MF",category:"Patrimonio industrial",badge:"Al Aire Libre",description:"16 locomotoras a vapor históricas y coches de madera entre jardines del parque.",detail:"Dos hectáreas de material rodante que forjó el desarrollo ferroviario del país: la mítica Locomotora Type 80, coches presidenciales y la antigua maestranza.",schedule:"Martes a Domingo",access:"Acceso por Av. Portales",image:"https://images.pexels.com/photos/32884616/pexels-photo-32884616.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",color:"#D62828",lat:-33.4362,lng:-70.6858},
+  {slug:"historia-natural",name:"Museo Nacional de Historia Natural",short_name:"Historia Natural",initials:"HN",category:"Ciencias naturales",badge:"Fundado 1830",description:"Salas de fósiles, minerales y botánica, con la célebre ballena del hall central.",detail:"Uno de los museos más antiguos de América. Su palacio de 1875 alberga el recorrido biogeográfico de Chile, desde el desierto hasta la Antártica.",schedule:"Martes a Domingo",access:"Interior del parque, alameda central",image:"https://images.pexels.com/photos/9321620/pexels-photo-9321620.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",color:"#0077B6",lat:-33.4417,lng:-70.6812},
+  {slug:"mac",name:"Museo de Arte Contemporáneo",short_name:"Arte Contemporáneo",initials:"MC",category:"Artes visuales",badge:"Palacio Versailles",description:"Exposiciones de arte chileno y latinoamericano en el histórico Edificio Versailles.",detail:"Dependiente de la Universidad de Chile, el MAC Quinta Normal combina colección patrimonial con muestras temporales de vanguardia.",schedule:"Martes a Domingo",access:"Interior del parque, acceso Matucana",image:"https://images.pexels.com/photos/6229259/pexels-photo-6229259.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",color:"#F77F00",lat:-33.4427,lng:-70.6792},
+  {slug:"ciencia-tecnologia",name:"Museo de Ciencia y Tecnología",short_name:"Ciencia y Tecnología",initials:"CT",category:"Ciencia interactiva",badge:"CORPDICYT",description:"Salas interactivas de física experimental, telecomunicaciones y tecnología.",detail:"El primer museo interactivo de Chile: módulos para tocar, experimentar y comprender principios científicos jugando.",schedule:"Martes a Domingo",access:"Interior del parque, sector poniente",image:"https://images.unsplash.com/photo-1672271216639-450064f85d3c?crop=entropy&cs=srgb&fm=jpg&q=85",color:"#2A9D8F",lat:-33.4436,lng:-70.6828},
+  {slug:"infantil",name:"Museo Infantil",short_name:"Museo Infantil",initials:"MI",category:"Educación y juego",badge:"Ideal para Niños",description:"Exposiciones didácticas pensadas para que los más pequeños aprendan jugando.",detail:"Salas temáticas de ciencia, arte y oficios diseñadas para niños y niñas, con mediadores y talleres durante todo el año.",schedule:"Martes a Domingo",access:"Interior del parque, junto a la laguna",image:"https://images.pexels.com/photos/36721813/pexels-photo-36721813.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",color:"#F77F00",lat:-33.4431,lng:-70.6816},
+  {slug:"artequin",name:"Museo Artequín",short_name:"Pabellón Artequín",initials:"AQ",category:"Artes educativas",badge:"Pabellón París 1889",description:"Reproducciones de grandes obras de la pintura universal en el Pabellón París.",detail:"El pabellón que representó a Chile en la Exposición Universal de París de 1889 hoy acoge un museo educativo de arte con vitrales y estructura de hierro.",schedule:"Martes a Domingo",access:"Interior del parque, frente al MAC",image:"https://images.unsplash.com/photo-1569339501214-16b5a5172af1?crop=entropy&cs=srgb&fm=jpg&q=85",color:"#D62828",lat:-33.4419,lng:-70.6784},
+  {slug:"memoria",name:"Museo de la Memoria y los DD.HH.",short_name:"Museo de la Memoria",initials:"MM",category:"Memoria y derechos humanos",badge:"Eje Matucana",description:"Centro de documentación, testimonios y exposiciones de derechos humanos.",detail:"Un espacio de reflexión sobre la historia reciente de Chile, con archivo audiovisual, salas expositivas y una plaza de la memoria.",schedule:"Martes a Domingo",access:"Matucana 501, frente al Metro Quinta Normal",image:"https://images.pexels.com/photos/36527114/pexels-photo-36527114.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",color:"#14213D",lat:-33.4399,lng:-70.6789},
+  {slug:"biblioteca",name:"Biblioteca de Santiago",short_name:"Biblioteca de Santiago",initials:"BS",category:"Biblioteca pública",badge:"Antigua Maestranza",description:"La mayor biblioteca pública de Chile, instalada en la antigua maestranza San Eugenio.",detail:"Salas de lectura, ludoteca, mediateca y una agenda cultural permanente en un edificio industrial recuperado.",schedule:"Martes a Domingo",access:"Matucana 151, frente al parque",image:"https://images.pexels.com/photos/7410267/pexels-photo-7410267.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",color:"#0077B6",lat:-33.4394,lng:-70.6780},
+  {slug:"matucana-100",name:"Centro Cultural Matucana 100",short_name:"Matucana 100",initials:"M100",category:"Centro cultural",badge:"Artes Escénicas",description:"Teatro, cine, música y exposiciones en los galpones de los antiguos talleres ferroviarios.",detail:"Un centro cultural de referencia con cartelera todo el año: danza, teatro, conciertos y cine al aire libre en verano.",schedule:"Según cartelera",access:"Matucana 100, sector poniente del parque",image:"https://images.pexels.com/photos/33690580/pexels-photo-33690580.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",color:"#2A9D8F",lat:-33.4406,lng:-70.6846}
+];
+
+const ROUTES = [
+  {id:"r-a",code:"Circuito A",name:"Infantil & Trenes",title:"Ruta de las Máquinas y Juegos",duration:"2 Horas",difficulty:"Baja",description:"Comienza en el Museo Ferroviario explorando las locomotoras históricas, continúa por el Museo Infantil y finaliza con un paseo junto a la laguna del parque.",audience:"Recomendado para familias con niños pequeños y paseos escolares iniciales.",key_stops:"Ferroviario + Infantil",stops:["ferroviario","infantil","ciencia-tecnologia"],color:"#F77F00",text_color:"#FFB84D",panel_bg:"#FAF0CA"},
+  {id:"r-b",code:"Circuito B",name:"Ciencia & Patrimonio",title:"Ruta de los Descubrimientos",duration:"3.5 Horas",difficulty:"Media",description:"Visita al Museo de Historia Natural, experimentos en el Museo de Ciencia y Tecnología y recorrido botánico por los árboles patrimoniales del parque.",audience:"Especial para colegios de enseñanza básica y media.",key_stops:"MNHN + Ciencia",stops:["historia-natural","ciencia-tecnologia","ferroviario"],color:"#0077B6",text_color:"#5DADE2",panel_bg:"#EBF5FB"},
+  {id:"r-c",code:"Circuito C",name:"Artes & Memoria",title:"Ruta de la Expresión y Sociedad",duration:"4 Horas",difficulty:"Media",description:"Inicia en el MAC Quinta Normal, visita los vitrales de Artequín y cruza Matucana hacia el Museo de la Memoria y la Biblioteca de Santiago.",audience:"Ideal para turistas, universitarios e investigadores.",key_stops:"MAC + Artequín + Memoria",stops:["mac","artequin","memoria","biblioteca"],color:"#D62828",text_color:"#F07070",panel_bg:"#FCE8E6"}
+];
+
+let selectedRouteId = "r-a";
+let map, polyline;
+const markers = {};
+
+const starSVG = (filled, size) =>
+  `<svg class="${size}" viewBox="0 0 24 24" fill="${filled ? "#F77F00" : "none"}" stroke="${filled ? "#F77F00" : "rgba(20,33,61,0.25)"}" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+
+function toast(msg, ok=true){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = ok ? "#0077B6" : "#D62828";
+  t.style.color = "#fff";
+  t.style.opacity = "1"; t.style.transform = "translate(-50%, 0)";
+  setTimeout(()=>{ t.style.opacity = "0"; t.style.transform = "translate(-50%, -10px)"; }, 3200);
+}
+
+/* ---------- Marquee ---------- */
+(function(){
+  const names = MUSEUMS.map(m=>m.short_name);
+  const items = names.concat(names);
+  document.getElementById("marquee-track").innerHTML = items.map(n=>`<span class="flex items-center gap-10"><span>${n}</span><span class="text-[#D62828]">/</span></span>`).join("");
+})();
+
+/* ---------- Museos grid ---------- */
+(function(){
+  document.getElementById("museums-grid").innerHTML = MUSEUMS.map((m,i)=>`
+    <article data-testid="museum-card-${m.slug}" class="rounded-3xl border border-[#14213D]/10 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow fade-in-up flex flex-col" style="animation-delay:${(i%3)*0.12}s">
+      <div class="h-52 relative overflow-hidden">
+        <img src="${m.image}" alt="${m.name}" loading="lazy" class="absolute inset-0 w-full h-full object-cover drift">
+        <div class="absolute top-4 left-4 font-sans text-[10px] font-bold text-white px-2.5 py-1 rounded-full uppercase" style="background:${m.color}">${m.badge}</div>
+      </div>
+      <div class="p-6 flex flex-col flex-1">
+        <span class="font-sans text-[10px] font-bold tracking-widest uppercase text-[#14213D]/50 mb-1">${m.category}</span>
+        <h3 class="serif-title text-2xl text-[#14213D] mb-2">${m.short_name}</h3>
+        <p class="text-xs text-[#14213D]/70 leading-relaxed mb-3">${m.detail}</p>
+        <div class="mt-auto pt-2 space-y-1">
+          <span class="block font-sans text-[11px] font-semibold text-[#0077B6]">${m.schedule}</span>
+          <span class="block font-sans text-[11px] text-[#14213D]/60">${m.access}</span>
+        </div>
+      </div>
+    </article>`).join("");
+})();
+
+/* ---------- Mapa ---------- */
+function makeIcon(m, active){
+  return L.divIcon({className:"", html:`<div class="museum-pin ${active?"pin-active":""}" style="background:${m.color}">${m.initials}</div>`, iconSize:[36,36], iconAnchor:[18,18], popupAnchor:[0,-20]});
+}
+function initMap(){
+  map = L.map("map",{scrollWheelZoom:false}).setView([-33.4405,-70.6818],16);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+  MUSEUMS.forEach(m=>{
+    const mk = L.marker([m.lat,m.lng],{icon:makeIcon(m,false)}).addTo(map);
+    mk.bindPopup(`<div data-testid="map-popup-${m.slug}">
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#14213D">${m.name}</div>
+      <div style="color:#14213D;opacity:.75;margin-top:4px">${m.description}</div>
+      <div style="color:${m.color};font-weight:700;margin-top:6px;font-size:11px;text-transform:uppercase;letter-spacing:1px">${m.schedule}</div>
+    </div>`);
+    markers[m.slug] = mk;
+  });
+}
+
+/* ---------- Rutas ---------- */
+function getRoute(){ return ROUTES.find(r=>r.id===selectedRouteId); }
+function routeStops(){ return getRoute().stops.map(s=>MUSEUMS.find(m=>m.slug===s)).filter(Boolean); }
+
+function renderRouteUI(){
+  const route = getRoute();
+  const stops = routeStops();
+
+  document.getElementById("map-route-switcher").innerHTML = ROUTES.map(r=>`
+    <button type="button" data-testid="map-route-btn-${r.id}" onclick="selectRoute('${r.id}')"
+      class="px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider transition-colors border ${r.id===route.id?"text-white border-transparent":"bg-white/5 text-white/70 border-white/15 hover:border-white/40"}"
+      style="${r.id===route.id?`background:${r.color}`:""}">${r.code}</button>`).join("");
+
+  document.getElementById("map-stops").innerHTML = stops.map((m,i)=>`
+    <div data-testid="map-stop-${m.slug}" class="p-4 rounded-xl bg-white/10 fade-in-up" style="border-left:4px solid ${m.color};animation-delay:${i*0.12}s">
+      <div class="text-xs font-bold uppercase" style="color:${route.text_color}">Parada ${i+1} · ${m.category}</div>
+      <div class="font-bold text-base text-white">${m.name}</div>
+      <p class="text-xs text-white/70 mt-1">${m.description}</p>
+    </div>`).join("");
+
+  document.getElementById("route-options").innerHTML = ROUTES.map(r=>{
+    const active = r.id===route.id;
+    return `<button type="button" role="radio" aria-checked="${active}" data-testid="route-option-${r.id}" onclick="selectRoute('${r.id}')"
+      class="p-4 rounded-2xl border text-center cursor-pointer transition-colors ${active?"border-[#0077B6] bg-[#EBF5FB] text-[#0077B6]":"border-[#14213D]/20 bg-white text-[#14213D] hover:border-[#0077B6]/50"}">
+      <span class="font-sans text-xs uppercase block font-semibold ${active?"text-[#0077B6]/70":"text-[#14213D]/60"}">${r.code}</span>
+      <span class="serif-title text-xl">${r.name}</span>
+    </button>`;
+  }).join("");
+
+  const meta = document.getElementById("route-meta");
+  meta.style.color = route.color;
+  meta.innerHTML = `<span>Duración: ${route.duration}</span><span>Dificultad: ${route.difficulty}</span>`;
+  document.getElementById("route-title").textContent = route.title;
+  document.getElementById("route-desc").textContent = route.description;
+  document.getElementById("route-audience").textContent = route.audience;
+  document.getElementById("route-stops").innerHTML = stops.map((m,i)=>`
+    <li data-testid="route-stop-${m.slug}" class="flex items-center gap-3 font-sans text-xs">
+      <span class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] shrink-0" style="background:${m.color}">${i+1}</span>
+      <span class="font-semibold text-[#14213D]">${m.name}</span>
+    </li>`).join("");
+  const panel = document.getElementById("route-panel");
+  panel.style.background = route.panel_bg;
+  const ks = document.getElementById("route-keystops");
+  ks.textContent = route.key_stops;
+  ks.style.color = route.color;
+  document.getElementById("route-view-map").style.background = route.color;
+
+  if(map){
+    if(polyline){ map.removeLayer(polyline); polyline = null; }
+    const pts = stops.map(m=>[m.lat,m.lng]);
+    if(pts.length>1) polyline = L.polyline(pts,{color:route.color,weight:4,dashArray:"8 6"}).addTo(map);
+    Object.entries(markers).forEach(([slug,mk])=>{
+      const m = MUSEUMS.find(x=>x.slug===slug);
+      mk.setIcon(makeIcon(m, stops.some(s=>s.slug===slug)));
+    });
+    if(pts.length) map.flyToBounds(L.latLngBounds(pts).pad(0.35),{duration:1.2});
+  }
+}
+function selectRoute(id){ selectedRouteId = id; renderRouteUI(); }
+document.getElementById("route-view-map").addEventListener("click",()=>{
+  document.getElementById("mapa-plano").scrollIntoView({behavior:"smooth"});
+});
+
+/* ---------- Evaluaciones (localStorage) ---------- */
+const LS_KEY = "qm_evaluations";
+let rating = 0;
+
+function getEvaluations(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch(e){ return []; } }
+
+function renderStars(){
+  const star = `<svg class="w-7 h-7" viewBox="0 0 24 24" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+  document.getElementById("star-rating").innerHTML = [1,2,3,4,5].map(n=>
+    `<button type="button" role="radio" aria-checked="false" aria-label="${n} estrella${n>1?"s":""}" data-testid="star-${n}" data-n="${n}" class="star-btn" onclick="setRating(${n})">${star}</button>`).join("");
+}
+function setRating(n){
+  rating = n;
+  const box = document.getElementById("star-rating");
+  box.dataset.value = n;
+  box.querySelectorAll("button").forEach(b=>b.setAttribute("aria-checked", parseInt(b.dataset.n,10)===n));
+}
+
+function renderTestimonials(){
+  const list = getEvaluations();
+  const box = document.getElementById("testimonials-list");
+  if(list.length===0){
+    box.innerHTML = `<p class="text-xs text-[#14213D]/80 italic">Las valoraciones verificadas de los recorridos se publicarán en este muro tras el cierre de cada jornada.</p>`;
+    document.getElementById("evaluation-stats").classList.add("hidden");
+    document.getElementById("evaluation-stats").classList.remove("flex");
+    return;
+  }
+  box.innerHTML = list.map((ev,i)=>`
+    <div data-testid="testimonial-${i}" class="border-b border-[#14213D]/10 pb-3 last:border-0">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-sans text-xs font-bold text-[#14213D]">${ev.name}</span>
+        <div class="flex gap-0.5">${[1,2,3,4,5].map(s=>starSVG(s<=ev.rating,"w-3.5 h-3.5")).join("")}</div>
+      </div>
+      <div class="font-sans text-[10px] uppercase tracking-wider text-[#0077B6] font-semibold mt-0.5">${ev.route}</div>
+      <p class="text-xs text-[#14213D]/80 mt-1 leading-relaxed">${ev.comment}</p>
+    </div>`).join("");
+  const avg = Math.round(list.reduce((a,e)=>a+e.rating,0)/list.length*10)/10;
+  const stats = document.getElementById("evaluation-stats");
+  stats.classList.remove("hidden"); stats.classList.add("flex");
+  document.getElementById("stats-average").textContent = avg;
+  document.getElementById("stats-stars").innerHTML = [1,2,3,4,5].map(s=>starSVG(s<=Math.round(avg),"w-3.5 h-3.5")).join("");
+  document.getElementById("stats-count").textContent = `${list.length} evaluación${list.length!==1?"es":""} publicada${list.length!==1?"s":""}`;
+}
+
+(function(){
+  const sel = document.getElementById("eval-route");
+  ROUTES.forEach(r=>{ const o=document.createElement("option"); o.value=`${r.code}: ${r.name}`; o.textContent=`${r.code}: ${r.name}`; sel.appendChild(o); });
+  const o=document.createElement("option"); o.value="Recorrido Espontáneo"; o.textContent="Recorrido Espontáneo"; sel.appendChild(o);
+})();
+
+document.getElementById("evaluation-form").addEventListener("submit",(e)=>{
+  e.preventDefault();
+  const name = document.getElementById("eval-name").value.trim();
+  const route = document.getElementById("eval-route").value;
+  const comment = document.getElementById("eval-comment").value.trim();
+  if(name.length<2){ toast("Ingresa tu nombre", false); return; }
+  if(!route){ toast("Selecciona un circuito", false); return; }
+  if(rating===0){ toast("Selecciona una calificación en estrellas", false); return; }
+  if(comment.length<3){ toast("Escribe un comentario", false); return; }
+  const esc = s=>s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const list = getEvaluations();
+  list.unshift({name:esc(name), route:esc(route), rating, comment:esc(comment), created_at:new Date().toISOString()});
+  localStorage.setItem(LS_KEY, JSON.stringify(list.slice(0,50)));
+  document.getElementById("eval-name").value = "";
+  document.getElementById("eval-route").value = "";
+  document.getElementById("eval-comment").value = "";
+  rating = 0;
+  document.getElementById("star-rating").dataset.value = 0;
+  renderTestimonials();
+  toast("¡Gracias! Tu evaluación fue publicada en el muro de testimonios.");
+});
+
+/* ---------- Init ---------- */
+initMap();
+renderRouteUI();
+renderStars();
+renderTestimonials();
+</script>
+</body>
+</html>
