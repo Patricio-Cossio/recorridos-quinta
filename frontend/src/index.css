@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: "Source Serif 4", Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #FFFDF9;
+    color: #14213D;
+}
+
+.serif-title {
+    font-family: "Playfair Display", Didot, "Bodoni 72", "Bodoni MT", "Big Caslon", serif;
+    letter-spacing: -0.01em;
+}
+
+code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+/* Direction animations */
+.ln { display: block; overflow: hidden; }
+.ln > span { display: block; animation: d2-up .9s cubic-bezier(.2,.7,0,1) both; }
+.ln:nth-child(2) > span { animation-delay: .15s; }
+@keyframes d2-up { from { transform: translateY(110%); } to { transform: translateY(0); } }
+
+.d2-wipe { clip-path: inset(100% 0 0 0); animation: d2-w 1.2s .2s cubic-bezier(.7,0,.2,1) forwards; }
+@keyframes d2-w { to { clip-path: inset(0 0 0 0); } }
+
+.mq { display: flex; width: max-content; animation: d2-mq 42s linear infinite; }
+@keyframes d2-mq { to { transform: translateX(-50%); } }
+
+.drift { animation: d2-drift 18s ease-in-out infinite alternate; }
+@keyframes d2-drift { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+
+.slot-arch { border-radius: 180px 180px 24px 24px; overflow: hidden; }
+
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in-up { animation: fade-in-up .7s cubic-bezier(.2,.7,0,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+    .ln > span, .d2-wipe, .mq, .drift, .fade-in-up { animation: none !important; }
+    .d2-wipe { clip-path: none; }
+}
+
+/* Leaflet overrides */
+.leaflet-container { font-family: "Source Serif 4", Georgia, serif; z-index: 10; }
+.museum-pin {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 9999px;
+    color: #fff; font-family: "Playfair Display", serif; font-weight: 700; font-size: 12px;
+    border: 3px solid #fff; box-shadow: 0 4px 14px rgba(20,33,61,.45);
+    cursor: pointer;
+}
+.museum-pin.pin-active { transform: scale(1.25); border-color: #F77F00; }
+.leaflet-popup-content-wrapper {
+    border-radius: 16px; box-shadow: 0 10px 30px rgba(20,33,61,.25);
+}
+.leaflet-popup-content { margin: 14px 18px; font-size: 13px; line-height: 1.5; }
+
+@layer base {
+    :root {
+        --background: 40 100% 99%;
+        --foreground: 222 53% 16%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 53% 16%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 53% 16%;
+        --primary: 222 53% 16%;
+        --primary-foreground: 40 100% 99%;
+        --secondary: 199 100% 36%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 48 76% 89%;
+        --muted-foreground: 222 30% 40%;
+        --accent: 33 100% 48%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 72% 50%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 222 20% 88%;
+        --input: 222 20% 85%;
+        --ring: 199 100% 36%;
+        --radius: 0.5rem;
+    }
+}
+
+@layer base {
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+}
+
+@layer base {
+    [data-debug-wrapper="true"] { display: contents !important; }
+    [data-debug-wrapper="true"] > * {
+        margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
+        padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
+        column-gap: inherit; row-gap: inherit; gap: inherit;
+        border-left-width: inherit; border-right-width: inherit; border-top-width: inherit; border-bottom-width: inherit;
+        border-left-style: inherit; border-right-style: inherit; border-top-style: inherit; border-bottom-style: inherit;
+        border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
+    }
+}

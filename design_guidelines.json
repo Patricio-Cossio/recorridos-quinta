@@ -1,0 +1,199 @@
+{
+  "build_manifest": {
+    "direction": {
+      "path": "/app/design/direction.html",
+      "app_type": "travel-hospitality",
+      "ambition": "A3",
+      "mode": "light",
+      "rail": "form",
+      "readiness": "partial",
+      "spine": "LOCAL",
+      "name": "Quinta Matucana",
+      "tone": "Editorial & Patrimonial",
+      "axes": {
+        "layout": "split-copy-media",
+        "hero": "split-copy-media",
+        "tone_register": "refined-editorial",
+        "proof": "honest-empty",
+        "motion": "entrance-only",
+        "colour": "navy+warm-ochre+amber",
+        "type_pairing": "serif-display+sans-body"
+      }
+    },
+    "tone_tokens": {
+      "typography": {
+        "families": {
+          "display": "\"Didot\", \"Bodoni 72\", \"Bodoni MT\", \"Big Caslon\", serif",
+          "body": "system-ui, -apple-system, sans-serif"
+        },
+        "classes": {
+          "display": "serif-title",
+          "body": "font-sans"
+        }
+      },
+      "colors": {
+        "background": "#FFFDF9",
+        "ink_primary": "#14213D",
+        "accent_primary": "#0077B6",
+        "accent_secondary": "#F77F00",
+        "accent_danger": "#D62828",
+        "muted_amber": "#FAF0CA",
+        "muted_teal": "#2A9D8F",
+        "muted_blue": "#EBF5FB",
+        "muted_red": "#FCE8E6",
+        "selection_bg": "#0077B6",
+        "selection_text": "#FFFFFF"
+      },
+      "spacing_step": "tailwind-defaults (8, 12, 16, 20, 24)",
+      "radius": {
+        "card": "3xl",
+        "inner": "2xl",
+        "button": "full",
+        "slot_arch": "180px 180px 24px 24px"
+      },
+      "shadows": {
+        "hero_image": "shadow-2xl",
+        "card_hover": "shadow-md",
+        "card_default": "shadow-sm"
+      }
+    },
+    "conversion_wiring": {
+      "action": "form",
+      "location": "Section #evaluacion",
+      "fields": ["Nombre y Apellido", "Circuito Realizado", "Calificación Global", "Comentario de la visita"],
+      "behavior": "When the form is submitted, it should save the evaluation to the database and update the testimonials section in real-time."
+    },
+    "content_slots": [
+      {
+        "slot": "differentiator",
+        "text": "EL GRAN PARQUE DE\nLOS MUSEOS CHILENOS",
+        "source": "brief"
+      },
+      {
+        "slot": "testimonials",
+        "text": "Las valoraciones verificadas de los recorridos se publicarán en este muro tras el cierre de cada jornada.",
+        "source": "placeholder"
+      }
+    ],
+    "fabrication_guardrails": [
+      "No statistics, ratings, review counts, awards, certifications, founding/copyright years, press mentions, named clients, or testimonials unless present in content_slots."
+    ],
+    "locale": {
+      "language": "es-CL",
+      "currency": "CLP"
+    }
+  },
+  "instructions_to_main_agent": "/app/design/direction.html is the visual source of truth. These guidelines transcribe it and add real images. On any conflict, the direction file wins. Ensure that the 'Catálogo Patrimonial' (the grid of museums) is fully populated with all the museums mentioned in the brief, using the provided image URLs.",
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, \"on distribution\" outputs. In frontend design, this creates what users call the \"AI slop\" aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: `transition: all`. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add `.App { text-align: center; }` in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "All interactive and key informational elements MUST include a `data-testid` attribute to facilitate robust automated testing.",
+    "For toasts, use sonner (located in /app/src/components/ui/sonner.tsx)."
+  ],
+  "typography": {
+    "heading": "Didot, Bodoni 72, Bodoni MT, Big Caslon, serif",
+    "body": "system-ui, -apple-system, sans-serif"
+  },
+  "colors": {
+    "primary": "#14213D",
+    "secondary": "#0077B6",
+    "accent": "#F77F00",
+    "background": "#FFFDF9"
+  },
+  "visual_enhancers": [
+    "Staggered entrance animations",
+    "Hover-triggered shadow expansions",
+    "Drifting radial gradients for image backgrounds",
+    "Marquee scrolling tape for museum names",
+    "Glassmorphism on the sticky header"
+  ],
+  "grids": [
+    "12-column bento-style grid for large desktop",
+    "3-column standard grid for cards",
+    "Split 7-5 / 8-4 asymmetrical columns"
+  ],
+  "layouts": [
+    "Split-copy-media heroes",
+    "Cards with strict corner radii",
+    "Full-bleed banners"
+  ],
+  "motion": [
+    "d2-up (Translate Y)",
+    "d2-wipe (Clip-path insert)",
+    "d2-mq (Translate X Marquee)",
+    "d2-drift (Scale pulse)"
+  ],
+  "accessibility": [
+    "Prefers-reduced-motion media query respect",
+    "Accessible focus rings",
+    "High contrast for body text against backgrounds"
+  ],
+  "media": "Leaflet / OpenStreetMap required for interactive map.",
+  "image_urls": [
+    {
+      "category": "hero-ferroviario",
+      "description": "majestic steam locomotive at Museo Ferroviario",
+      "url": "https://images.pexels.com/photos/15062958/pexels-photo-15062958.png?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "card-mnhn",
+      "description": "monumental central hall of Museo Nacional de Historia Natural with blue whale skeleton",
+      "url": "https://images.pexels.com/photos/9321620/pexels-photo-9321620.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "card-ferro",
+      "description": "rows of polished steam locomotives on rails",
+      "url": "https://images.pexels.com/photos/32884616/pexels-photo-32884616.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "card-memoria",
+      "description": "modern glass and copper architecture of Museo de la Memoria",
+      "url": "https://images.pexels.com/photos/36527114/pexels-photo-36527114.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "full-bleed-trees",
+      "description": "historic green avenue of Chilean palms inside Quinta Normal park",
+      "url": "https://images.pexels.com/photos/38313214/pexels-photo-38313214.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "card-mac",
+      "description": "Museo de Arte Contemporáneo architecture",
+      "url": "https://images.pexels.com/photos/6229259/pexels-photo-6229259.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "card-biblioteca",
+      "description": "Biblioteca de Santiago building",
+      "url": "https://images.pexels.com/photos/7410267/pexels-photo-7410267.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "card-matucana100",
+      "description": "Matucana 100 centro cultural",
+      "url": "https://images.pexels.com/photos/33690580/pexels-photo-33690580.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "card-artequin",
+      "description": "Museo Artequin pabellon paris",
+      "url": "https://images.unsplash.com/photo-1569339501214-16b5a5172af1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxtdXNlbyUyMGFydGVxdWluJTIwc2FudGlhZ28lMjBjaGlsZSUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3OTIyMDc4NDl8MA&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "card-ciencia",
+      "description": "Museo de Ciencia y Tecnología",
+      "url": "https://images.unsplash.com/photo-1672271216639-450064f85d3c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxNzV8MHwxfHNlYXJjaHwzfHxtdXNlbyUyMGNpZW5jaWElMjB5JTIwdGVjbm9sb2dpYSUyMHNhbnRpYWdvJTIwY2hpbGV8ZW58MHx8fHwxNzkyMjA3ODU3fDA&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "card-infantil",
+      "description": "Museo Infantil",
+      "url": "https://images.pexels.com/photos/36721813/pexels-photo-36721813.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    }
+  ]
+}
