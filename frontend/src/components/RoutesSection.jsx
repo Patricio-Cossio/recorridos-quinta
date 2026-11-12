@@ -1,4 +1,5 @@
 import { Clock, TrendingUp, MapPin } from "lucide-react";
+import { AudioGuide } from "./AudioGuide";
 
 export const RoutesSection = ({ routes, museums, selectedRouteId, onSelectRoute }) => {
     const route = routes.find((r) => r.id === selectedRouteId) || routes[0];
@@ -69,15 +70,18 @@ export const RoutesSection = ({ routes, museums, selectedRouteId, onSelectRoute 
                                     </li>
                                 ))}
                             </ol>
-                            <button
-                                type="button"
-                                data-testid="route-view-map-btn"
-                                onClick={goToMap}
-                                className="font-sans inline-flex items-center gap-2 px-6 py-3 rounded-full text-white font-bold text-xs uppercase tracking-wider transition-colors"
-                                style={{ background: route.color }}
-                            >
-                                <MapPin className="w-4 h-4" /> Ver circuito en el mapa
-                            </button>
+                            <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start">
+                                <button
+                                    type="button"
+                                    data-testid="route-view-map-btn"
+                                    onClick={goToMap}
+                                    className="font-sans inline-flex items-center gap-2 px-6 py-3 rounded-full text-white font-bold text-xs uppercase tracking-wider transition-colors"
+                                    style={{ background: route.color }}
+                                >
+                                    <MapPin className="w-4 h-4" /> Ver circuito en el mapa
+                                </button>
+                                <AudioGuide route={route} />
+                            </div>
                         </div>
                         <div className="md:col-span-4 rounded-2xl p-6 text-center" style={{ background: route.panel_bg }}>
                             <div className="font-sans text-xs uppercase text-[#14213D]/70 font-bold mb-1">Paradas Clave</div>

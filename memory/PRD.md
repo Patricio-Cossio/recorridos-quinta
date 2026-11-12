@@ -33,7 +33,9 @@
 ## Implementado (2026-11-12)
 - Carrusel MANUAL de 5 imágenes por tarjeta de museo (flechas + puntos, sin auto-avance)
 - Panel de administración en /admin: login JWT (cookie httpOnly), subida de fotos JPG/PNG/WebP máx 8MB, eliminación de imágenes; archivos en /app/backend/uploads servidos vía /api/uploads
-- Credenciales admin en /app/memory/test_credentials.md
+- Botón azul "Comprar Audio Guía" por circuito: diálogo de compra SIMULADA (sin cargo real) con código secreto 25112026 (env AUDIO_GUIDE_CODE) que desbloquea un reproductor MP3; desbloqueo persiste en localStorage
+- Audios MP3 de muestra generados (tono, 6s) por circuito; el admin sube los MP3 reales desde /admin (sección Audio Guías, máx 20MB, reemplazo/eliminación con restauración de muestra)
+- Credenciales admin y código en /app/memory/test_credentials.md
 - Textos del muro actualizados: las evaluaciones se publican de inmediato
 
 ## Verificado

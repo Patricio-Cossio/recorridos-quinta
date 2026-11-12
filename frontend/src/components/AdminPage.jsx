@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast, Toaster } from "sonner";
-import { Trash2, Upload, LogOut, ArrowLeft } from "lucide-react";
+import { Trash2, Upload, LogOut, ArrowLeft, Headphones } from "lucide-react";
 import { Logo } from "./Logo";
-import { loginAdmin, logoutAdmin, getMe, getMuseums, uploadMuseumImage, deleteMuseumImage } from "../api";
+import { loginAdmin, logoutAdmin, getMe, getMuseums, uploadMuseumImage, deleteMuseumImage, getAdminAudioguides, uploadAudioguide, deleteAudioguide } from "../api";
 
 const formatApiError = (detail) => {
     if (detail == null) return "Ocurrió un error. Intenta nuevamente.";
@@ -19,6 +19,7 @@ export default function AdminPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [museums, setMuseums] = useState([]);
+    const [audioguides, setAudioguides] = useState([]);
     const [uploading, setUploading] = useState("");
 
     useEffect(() => {
@@ -28,7 +29,10 @@ export default function AdminPage() {
     }, []);
 
     useEffect(() => {
-        if (user) getMuseums().then(setMuseums).catch(() => {});
+        if (user) {
+            getMuseums().then(setMuseums).catch(() => {});
+            getAdminAudioguides().then(setAudioguides).catch(() => {});
+        }
     }, [user]);
 
     const handleLogin = async (e) => {
@@ -62,6 +66,32 @@ export default function AdminPage() {
             toast.error(formatApiError(err.response?.data?.detail));
         } finally {
             setUploading("");
+        }
+    };
+
+    const handleAudioUpload = async (routeId, file) => {
+        if (!file) return;
+        setUploading(`audio-${routeId}`);
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            await uploadAudioguide(routeId, fd);
+            setAudioguides((prev) => prev.map((a) => (a.route_id === routeId ? { ...a, custom: true, has_audio: true } : a)));
+            toast.success("Audio guía actualizado");
+        } catch (err) {
+            toast.error(formatApiError(err.response?.data?.detail));
+        } finally {
+            setUploading("");
+        }
+    };
+
+    const handleAudioDelete = async (routeId) => {
+        try {
+            await deleteAudioguide(routeId);
+            setAudioguides((prev) => prev.map((a) => (a.route_id === routeId ? { ...a, custom: false } : a)));
+            toast.success("Se restauró el audio de muestra");
+        } catch (err) {
+            toast.error(formatApiError(err.response?.data?.detail));
         }
     };
 
@@ -170,8 +200,59 @@ export default function AdminPage() {
             </nav>
 
             <main className="max-w-6xl mx-auto px-6 md:px-8 py-12">
+                <span className="font-sans text-xs font-bold tracking-widest uppercase text-[#0077B6]">Audio Guías de los Circuitos</span>
+                <h1 className="serif-title text-4xl mt-1 mb-2">Gestiona los audios MP3</h1>
+                <p className="font-sans text-sm text-[#14213D]/70 mb-8 max-w-2xl">
+                    Sube el MP3 narrado de cada circuito (máx. 20 MB). Mientras no subas uno propio, el sitio reproduce un audio de muestra.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16" data-testid="admin-audioguides">
+                    {audioguides.map((a) => (
+                        <div key={a.route_id} data-testid={`admin-audio-${a.route_id}`} className="bg-white rounded-3xl border border-[#14213D]/10 p-6 shadow-sm">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Headphones className="w-4 h-4 text-[#0077B6]" />
+                                <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#14213D]/50">{a.code}</span>
+                            </div>
+                            <h3 className="serif-title text-xl mb-2">{a.name}</h3>
+                            <span
+                                data-testid={`audio-status-${a.route_id}`}
+                                className={`inline-block font-sans text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-4 ${a.custom ? "bg-[#2A9D8F] text-white" : "bg-[#FAF0CA] text-[#14213D]/70"}`}
+                            >
+                                {a.custom ? "Audio personalizado" : "Audio de muestra"}
+                            </span>
+                            <audio controls preload="none" className="w-full mb-4" src={`${process.env.REACT_APP_BACKEND_URL}/api/audioguides/audio/${a.route_id}.mp3`} data-testid={`admin-audio-player-${a.route_id}`} />
+                            <div className="flex gap-2 font-sans">
+                                <label
+                                    data-testid={`upload-audio-label-${a.route_id}`}
+                                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0077B6] text-white text-[11px] font-bold uppercase tracking-wider cursor-pointer hover:bg-[#005f92] transition-colors ${uploading === `audio-${a.route_id}` ? "opacity-60 pointer-events-none" : ""}`}
+                                >
+                                    <Upload className="w-3.5 h-3.5" />
+                                    {uploading === `audio-${a.route_id}` ? "Subiendo..." : a.custom ? "Reemplazar MP3" : "Subir MP3"}
+                                    <input
+                                        type="file"
+                                        accept="audio/mpeg,audio/mp3"
+                                        className="hidden"
+                                        data-testid={`upload-audio-input-${a.route_id}`}
+                                        onChange={(e) => { handleAudioUpload(a.route_id, e.target.files[0]); e.target.value = ""; }}
+                                    />
+                                </label>
+                                {a.custom && (
+                                    <button
+                                        type="button"
+                                        data-testid={`delete-audio-${a.route_id}`}
+                                        onClick={() => handleAudioDelete(a.route_id)}
+                                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#D62828]/40 text-[#D62828] text-[11px] font-bold uppercase tracking-wider hover:bg-[#FCE8E6] transition-colors"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" /> Restaurar muestra
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
                 <span className="font-sans text-xs font-bold tracking-widest uppercase text-[#D62828]">Carruseles de los Museos</span>
-                <h1 className="serif-title text-4xl mt-1 mb-2">Gestiona las fotografías</h1>
+                <h2 className="serif-title text-3xl mt-1 mb-2">Gestiona las fotografías</h2>
                 <p className="font-sans text-sm text-[#14213D]/70 mb-10 max-w-2xl">
                     Sube imágenes JPG, PNG o WebP (máx. 8 MB). Se agregan al final del carrusel de cada museo.
                     La primera imagen es la fotografía principal de la tarjeta.

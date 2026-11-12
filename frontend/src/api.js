@@ -23,4 +23,12 @@ export const uploadMuseumImage = (slug, formData) =>
 export const deleteMuseumImage = (slug, url) =>
     authApi.delete(`/admin/museums/${slug}/images`, { params: { url } }).then((r) => r.data);
 
+// Audio guías
+export const getAudioPrice = (routeId) => api.get(`/audioguides/${routeId}/price`).then((r) => r.data);
+export const unlockAudioGuide = (routeId, code) => api.post("/audioguides/unlock", { route_id: routeId, code }).then((r) => r.data);
+export const getAdminAudioguides = () => authApi.get("/admin/audioguides").then((r) => r.data);
+export const uploadAudioguide = (routeId, formData) =>
+    authApi.post(`/admin/audioguides/${routeId}`, formData, { headers: { "Content-Type": "multipart/form-data" } }).then((r) => r.data);
+export const deleteAudioguide = (routeId) => authApi.delete(`/admin/audioguides/${routeId}`).then((r) => r.data);
+
 export default api;

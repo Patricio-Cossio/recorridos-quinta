@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, UploadFile, File, Depends
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -348,6 +349,85 @@ async def seed_admin():
             "role": "admin",
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
+
+# ---------------- Audio guías (pago simulado con código secreto) ----------------
+
+AUDIO_DIR = ROOT_DIR / "audio"
+AUDIO_PRICES = {"r-a": 2500, "r-b": 3500, "r-c": 4000}
+
+class UnlockInput(BaseModel):
+    route_id: str
+    code: str = Field(min_length=1, max_length=60)
+
+@api_router.get("/audioguides/{route_id}/price")
+async def audioguide_price(route_id: str):
+    route = await db.routes.find_one({"id": route_id})
+    if not route:
+        raise HTTPException(status_code=404, detail="Circuito no encontrado")
+    return {"route_id": route_id, "price": AUDIO_PRICES.get(route_id, 2500), "currency": "CLP", "simulated": True}
+
+@api_router.post("/audioguides/unlock")
+async def unlock_audioguide(input: UnlockInput):
+    route = await db.routes.find_one({"id": input.route_id})
+    if not route:
+        raise HTTPException(status_code=404, detail="Circuito no encontrado")
+    expected = os.environ.get("AUDIO_GUIDE_CODE", "")
+    if not expected or input.code.strip().upper() != expected.upper():
+        raise HTTPException(status_code=403, detail="Código incorrecto. Verifica el código entregado con tu compra.")
+    return {
+        "route_id": input.route_id,
+        "audio_url": f"/api/audioguides/audio/{input.route_id}.mp3",
+        "title": route["title"],
+    }
+
+@api_router.get("/audioguides/audio/{route_id}.mp3")
+async def get_audioguide_audio(route_id: str):
+    custom = AUDIO_DIR / f"{route_id}-custom.mp3"
+    default = AUDIO_DIR / f"{route_id}.mp3"
+    if custom.exists():
+        return FileResponse(str(custom), media_type="audio/mpeg")
+    if default.exists():
+        return FileResponse(str(default), media_type="audio/mpeg")
+    raise HTTPException(status_code=404, detail="Audio no disponible para este circuito")
+
+@api_router.get("/admin/audioguides")
+async def admin_audioguides(user=Depends(get_current_user)):
+    routes = await db.routes.find({}, {"_id": 0}).to_list(10)
+    result = []
+    for r in routes:
+        custom = (AUDIO_DIR / f"{r['id']}-custom.mp3").exists()
+        default = (AUDIO_DIR / f"{r['id']}.mp3").exists()
+        result.append({
+            "route_id": r["id"],
+            "code": r["code"],
+            "name": r["name"],
+            "title": r["title"],
+            "price": AUDIO_PRICES.get(r["id"], 2500),
+            "custom": custom,
+            "has_audio": custom or default,
+        })
+    return result
+
+@api_router.post("/admin/audioguides/{route_id}")
+async def upload_audioguide(route_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+    route = await db.routes.find_one({"id": route_id})
+    if not route:
+        raise HTTPException(status_code=404, detail="Circuito no encontrado")
+    if file.content_type not in ("audio/mpeg", "audio/mp3"):
+        raise HTTPException(status_code=400, detail="Solo se permiten archivos MP3.")
+    data = await file.read()
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El audio supera los 20 MB.")
+    (AUDIO_DIR / f"{route_id}-custom.mp3").write_bytes(data)
+    return {"route_id": route_id, "custom": True}
+
+@api_router.delete("/admin/audioguides/{route_id}")
+async def delete_audioguide(route_id: str, user=Depends(get_current_user)):
+    path = AUDIO_DIR / f"{route_id}-custom.mp3"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Este circuito no tiene un audio personalizado.")
+    path.unlink()
+    return {"route_id": route_id, "custom": False}
 
 # ---------------- Routes ----------------
 
