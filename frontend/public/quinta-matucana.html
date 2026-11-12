@@ -423,7 +423,7 @@ function renderTestimonials(){
   const list = getEvaluations();
   const box = document.getElementById("testimonials-list");
   if(list.length===0){
-    box.innerHTML = `<p class="text-xs text-[#14213D]/80 italic">Las valoraciones verificadas de los recorridos se publicarán en este muro tras el cierre de cada jornada.</p>`;
+    box.innerHTML = `<p class="text-xs text-[#14213D]/80 italic">Aún no hay valoraciones. Envía tu evaluación y se publicará aquí de inmediato.</p>`;
     document.getElementById("evaluation-stats").classList.add("hidden");
     document.getElementById("evaluation-stats").classList.remove("flex");
     return;

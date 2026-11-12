@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, UploadFile, File, Depends
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -8,7 +9,9 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
+import bcrypt
+import jwt
+from datetime import datetime, timezone, timedelta
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -35,6 +38,7 @@ class Museum(BaseModel):
     schedule: str
     access: str
     image: str
+    images: List[str] = []
     color: str
     lat: float
     lng: float
@@ -191,6 +195,160 @@ ROUTES = [
     },
 ]
 
+# ---------------- Default gallery images (5 per museum, curated stock) ----------------
+
+_IMG = {
+    "ferro-hero": "https://images.pexels.com/photos/15062958/pexels-photo-15062958.png?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "ferro": "https://images.pexels.com/photos/32884616/pexels-photo-32884616.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "mnhn": "https://images.pexels.com/photos/9321620/pexels-photo-9321620.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "memoria": "https://images.pexels.com/photos/36527114/pexels-photo-36527114.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "trees": "https://images.pexels.com/photos/38313214/pexels-photo-38313214.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "mac": "https://images.pexels.com/photos/6229259/pexels-photo-6229259.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "biblioteca": "https://images.pexels.com/photos/7410267/pexels-photo-7410267.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "matucana": "https://images.pexels.com/photos/33690580/pexels-photo-33690580.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "artequin": "https://images.unsplash.com/photo-1569339501214-16b5a5172af1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxtdXNlbyUyMGFydGVxdWluJTIwc2FudGlhZ28lMjBjaGlsZSUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3OTIyMDc4NDl8MA&ixlib=rb-4.1.0&q=85",
+    "ciencia": "https://images.unsplash.com/photo-1672271216639-450064f85d3c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxNzV8MHwxfHNlYXJjaHwzfHxtdXNlbyUyMGNpZW5jaWElMjB5JTIwdGVjbm9sb2dpYSUyMHNhbnRpYWdvJTIwY2hpbGV8ZW58MHx8fHwxNzkyMjA3ODU3fDA&ixlib=rb-4.1.0&q=85",
+    "infantil": "https://images.pexels.com/photos/36721813/pexels-photo-36721813.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+}
+
+DEFAULT_IMAGES = {
+    "ferroviario": [_IMG["ferro"], _IMG["ferro-hero"], _IMG["trees"], _IMG["memoria"], _IMG["matucana"]],
+    "historia-natural": [_IMG["mnhn"], _IMG["trees"], _IMG["artequin"], _IMG["infantil"], _IMG["ciencia"]],
+    "mac": [_IMG["mac"], _IMG["artequin"], _IMG["matucana"], _IMG["memoria"], _IMG["trees"]],
+    "ciencia-tecnologia": [_IMG["ciencia"], _IMG["infantil"], _IMG["mnhn"], _IMG["trees"], _IMG["ferro"]],
+    "infantil": [_IMG["infantil"], _IMG["ciencia"], _IMG["ferro"], _IMG["trees"], _IMG["mnhn"]],
+    "artequin": [_IMG["artequin"], _IMG["mac"], _IMG["trees"], _IMG["memoria"], _IMG["biblioteca"]],
+    "memoria": [_IMG["memoria"], _IMG["trees"], _IMG["biblioteca"], _IMG["matucana"], _IMG["mac"]],
+    "biblioteca": [_IMG["biblioteca"], _IMG["matucana"], _IMG["trees"], _IMG["memoria"], _IMG["mnhn"]],
+    "matucana-100": [_IMG["matucana"], _IMG["memoria"], _IMG["trees"], _IMG["biblioteca"], _IMG["artequin"]],
+}
+
+# ---------------- Auth (admin) ----------------
+
+JWT_ALGORITHM = "HS256"
+
+def get_jwt_secret() -> str:
+    return os.environ["JWT_SECRET"]
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+def create_access_token(user_id: str, email: str) -> str:
+    payload = {"sub": user_id, "email": email, "exp": datetime.now(timezone.utc) + timedelta(hours=8), "type": "access"}
+    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
+
+async def get_current_user(request: Request) -> dict:
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if not token:
+        raise HTTPException(status_code=401, detail="No autenticado")
+    try:
+        payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="Token inválido")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Sesión expirada")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    user = await db.users.find_one({"email": payload["email"]})
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
+    return {"email": user["email"], "name": user.get("name", "Admin"), "role": user.get("role", "admin")}
+
+class LoginInput(BaseModel):
+    email: str
+    password: str
+
+@api_router.post("/auth/login")
+async def login(input: LoginInput, request: Request, response: Response):
+    email = input.email.lower().strip()
+    identifier = f"{request.client.host}:{email}"
+    attempts = await db.login_attempts.find_one({"identifier": identifier})
+    if attempts and attempts.get("count", 0) >= 5:
+        locked_until = attempts.get("locked_until")
+        if locked_until and datetime.fromisoformat(locked_until) > datetime.now(timezone.utc):
+            raise HTTPException(status_code=429, detail="Cuenta bloqueada temporalmente. Intenta en 15 minutos.")
+    user = await db.users.find_one({"email": email})
+    if not user or not verify_password(input.password, user["password_hash"]):
+        await db.login_attempts.update_one(
+            {"identifier": identifier},
+            {"$inc": {"count": 1}, "$set": {"locked_until": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()}},
+            upsert=True,
+        )
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    await db.login_attempts.delete_one({"identifier": identifier})
+    token = create_access_token(str(user["_id"]), email)
+    response.set_cookie(key="access_token", value=token, httponly=True, secure=True, samesite="none", max_age=28800, path="/")
+    return {"email": email, "name": user.get("name", "Admin"), "role": user.get("role", "admin")}
+
+@api_router.post("/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie(key="access_token", path="/")
+    return {"message": "Sesión cerrada"}
+
+@api_router.get("/auth/me")
+async def auth_me(user=Depends(get_current_user)):
+    return user
+
+# ---------------- Admin: gestión de imágenes ----------------
+
+UPLOAD_DIR = ROOT_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+ALLOWED_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+
+@api_router.post("/admin/museums/{slug}/images")
+async def upload_museum_image(slug: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+    museum = await db.museums.find_one({"slug": slug})
+    if not museum:
+        raise HTTPException(status_code=404, detail="Museo no encontrado")
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail="Formato no permitido. Usa JPG, PNG o WebP.")
+    data = await file.read()
+    if len(data) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="La imagen supera los 8 MB.")
+    filename = f"{slug}-{uuid.uuid4().hex[:10]}{ALLOWED_TYPES[file.content_type]}"
+    (UPLOAD_DIR / filename).write_bytes(data)
+    url = f"/api/uploads/{filename}"
+    await db.museums.update_one({"slug": slug}, {"$push": {"images": url}})
+    updated = await db.museums.find_one({"slug": slug}, {"_id": 0})
+    return updated
+
+@api_router.delete("/admin/museums/{slug}/images")
+async def delete_museum_image(slug: str, url: str, user=Depends(get_current_user)):
+    museum = await db.museums.find_one({"slug": slug})
+    if not museum:
+        raise HTTPException(status_code=404, detail="Museo no encontrado")
+    if url not in museum.get("images", []):
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    if len(museum.get("images", [])) <= 1:
+        raise HTTPException(status_code=400, detail="Cada museo debe mantener al menos una imagen.")
+    await db.museums.update_one({"slug": slug}, {"$pull": {"images": url}})
+    if url.startswith("/api/uploads/"):
+        path = UPLOAD_DIR / url.split("/")[-1]
+        if path.exists():
+            path.unlink()
+    updated = await db.museums.find_one({"slug": slug}, {"_id": 0})
+    return updated
+
+async def seed_admin():
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com").lower()
+    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+    existing = await db.users.find_one({"email": admin_email})
+    if existing is None:
+        await db.users.insert_one({
+            "email": admin_email,
+            "password_hash": hash_password(admin_password),
+            "name": "Administrador",
+            "role": "admin",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+
 # ---------------- Routes ----------------
 
 @api_router.get("/")
@@ -237,8 +395,15 @@ async def seed_data():
         await db.museums.insert_many([{**m, "_id": m["id"]} for m in MUSEUMS])
     if await db.routes.count_documents({}) == 0:
         await db.routes.insert_many([{**r, "_id": r["id"]} for r in ROUTES])
+    await db.users.create_index("email", unique=True)
+    await db.login_attempts.create_index("identifier")
+    await seed_admin()
+    async for m in db.museums.find({"$or": [{"images": {"$exists": False}}, {"images": {"$size": 0}}]}):
+        defaults = DEFAULT_IMAGES.get(m["slug"], [m["image"]])
+        await db.museums.update_one({"_id": m["_id"]}, {"$set": {"images": defaults}})
 
 app.include_router(api_router)
+app.mount("/api/uploads", StaticFiles(directory=str(ROOT_DIR / "uploads")), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,

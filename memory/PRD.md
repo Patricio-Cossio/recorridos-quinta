@@ -28,6 +28,13 @@
 - Formulario de evaluación con estrellas interactivas, guardado en MongoDB
 - Muro de testimonios públicos con promedio de calificación en tiempo real
 - Logotipo SVG propio (arco de pabellón + rieles)
+- Versión estática de un solo archivo: /app/frontend/public/quinta-matucana.html (localStorage, sin backend)
+
+## Implementado (2026-11-12)
+- Carrusel MANUAL de 5 imágenes por tarjeta de museo (flechas + puntos, sin auto-avance)
+- Panel de administración en /admin: login JWT (cookie httpOnly), subida de fotos JPG/PNG/WebP máx 8MB, eliminación de imágenes; archivos en /app/backend/uploads servidos vía /api/uploads
+- Credenciales admin en /app/memory/test_credentials.md
+- Textos del muro actualizados: las evaluaciones se publican de inmediato
 
 ## Verificado
 - API probada con curl (museos, rutas, POST/GET evaluaciones, stats)

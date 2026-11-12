@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
@@ -8,10 +9,11 @@ import { MuseumsGrid } from "./components/MuseumsGrid";
 import { RoutesSection } from "./components/RoutesSection";
 import { EvaluationSection } from "./components/EvaluationSection";
 import { Banner, Footer } from "./components/Footer";
+import AdminPage from "./components/AdminPage";
 import { getMuseums, getRoutes, getEvaluations, getEvaluationStats } from "./api";
 import "./App.css";
 
-function App() {
+function Home() {
     const [museums, setMuseums] = useState([]);
     const [routes, setRoutes] = useState([]);
     const [evaluations, setEvaluations] = useState([]);
@@ -76,6 +78,17 @@ function App() {
             )}
             <Footer />
         </div>
+    );
+}
+
+function App() {
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/admin" element={<AdminPage />} />
+            </Routes>
+        </BrowserRouter>
     );
 }
 

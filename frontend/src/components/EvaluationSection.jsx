@@ -82,7 +82,7 @@ export const EvaluationSection = ({ routes, evaluations, stats, onNewEvaluation 
                     <h2 className="serif-title text-4xl text-[#14213D] mt-1 mb-4">Evalúa tu Experiencia</h2>
                     <p className="text-sm text-[#14213D]/75 leading-relaxed mb-6">
                         Tu valoración sobre los tiempos, la limpieza de los senderos y la atención en cada museo ayuda a
-                        mejorar la guía comunitaria del parque.
+                        mejorar la guía comunitaria del parque. Cada evaluación se publica de inmediato en el muro de testimonios.
                     </p>
 
                     {stats.count > 0 && (
@@ -99,7 +99,7 @@ export const EvaluationSection = ({ routes, evaluations, stats, onNewEvaluation 
                         <div className="font-sans text-xs font-bold uppercase text-[#14213D]/70">Testimonios de Visitantes</div>
                         {evaluations.length === 0 ? (
                             <p className="text-xs text-[#14213D]/80 italic">
-                                Las valoraciones verificadas de los recorridos se publicarán en este muro tras el cierre de cada jornada.
+                                Aún no hay valoraciones. Envía tu evaluación y se publicará aquí de inmediato.
                             </p>
                         ) : (
                             evaluations.map((ev) => (

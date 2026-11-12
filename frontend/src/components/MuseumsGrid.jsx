@@ -1,3 +1,5 @@
+import { ImageCarousel } from "./ImageCarousel";
+
 export const MuseumsGrid = ({ museums }) => (
     <section id="museos" data-testid="museums-section" className="py-20 px-6 md:px-8 max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
@@ -15,22 +17,19 @@ export const MuseumsGrid = ({ museums }) => (
                 <article
                     key={m.id}
                     data-testid={`museum-card-${m.slug}`}
-                    className="rounded-3xl border border-[#14213D]/10 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow fade-in-up flex flex-col"
+                    className="relative rounded-3xl border border-[#14213D]/10 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow fade-in-up flex flex-col"
                     style={{ animationDelay: `${(i % 3) * 0.12}s` }}
                 >
-                    <div className="h-52 relative overflow-hidden">
-                        <img
-                            src={m.image}
-                            alt={m.name}
-                            loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover drift"
-                        />
-                        <div
-                            className="absolute top-4 left-4 font-sans text-[10px] font-bold text-white px-2.5 py-1 rounded-full uppercase"
-                            style={{ background: m.color }}
-                        >
-                            {m.badge}
-                        </div>
+                    <ImageCarousel
+                        images={m.images && m.images.length ? m.images : [m.image]}
+                        alt={m.name}
+                        slug={m.slug}
+                    />
+                    <div
+                        className="absolute top-4 left-4 font-sans text-[10px] font-bold text-white px-2.5 py-1 rounded-full uppercase z-10"
+                        style={{ background: m.color }}
+                    >
+                        {m.badge}
                     </div>
                     <div className="p-6 flex flex-col flex-1">
                         <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#14213D]/50 mb-1">
